@@ -14,3 +14,7 @@ Use the Ropsten [testnet](https://tokenstreaming.colorsleep.com/?test=true) vers
 - To get TST (the ERC20 token used for testing), go to [this contract](https://ropsten.etherscan.io/address/0x722dd3f80bac40c951b51bdd28dd19d435762180#writeContract) and call the `showMeTheMoney` function, which can be done through etherscan with MetaMask. 
 
 The Ropsten testnet version of the Sablier contract is [here](https://ropsten.etherscan.io/address/0xc04Ad234E01327b24a831e3718DBFcbE245904CC).
+
+# Building
+
+`yarn global add parcel-bundler` and then `parcel watch index.html`, be sure to start a server at `dist` e.g. `python -m http.server --bind 0.0.0.0 1234` and to move the static `tokenIcons` folder to the `dist` folder.
