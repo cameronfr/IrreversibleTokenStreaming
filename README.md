@@ -1,6 +1,6 @@
 # Irreversible Token Streaming
 
-This is a webapp that lets you setup a [Sablier](https://github.com/sablierhq/sablier) [contract](https://etherscan.io/address/0xA4fc358455Febe425536fd1878bE67FfDBDEC59a#code) and then throw away the private key.
+This is a [webapp](https://tokenstreaming.colorsleep.com/) that lets you setup a [Sablier](https://github.com/sablierhq/sablier) [contract](https://etherscan.io/address/0xA4fc358455Febe425536fd1878bE67FfDBDEC59a#code) and then throw away the private key.
 
 Built with [this](https://gitcoin.co/issue/sablierhq/sablier/30/3874) Gitcoin challenge in mind.
 
