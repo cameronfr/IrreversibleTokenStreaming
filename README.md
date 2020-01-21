@@ -9,6 +9,8 @@ Built with [this](https://gitcoin.co/issue/sablierhq/sablier/30/3874) Gitcoin ch
 - TestNet: https://tokenstreaming.colorsleep.com/?test=true
 
 # Testing
-Use the Ropsten [testnet](https://tokenstreaming.colorsleep.com/?test=true) version of the site specified above. To get ETH on Ropsten, go to [this faucet](https://faucet.ropsten.be/). To get TST (the ERC20 token used for testing), go to [this contract](https://ropsten.etherscan.io/address/0x722dd3f80bac40c951b51bdd28dd19d435762180#writeContract) and call the `showMeTheMoney` function, which can be done through etherscan with MetaMask. 
+Use the Ropsten [testnet](https://tokenstreaming.colorsleep.com/?test=true) version of the site specified above. 
+- To get ETH on Ropsten, go to [this faucet](https://faucet.ropsten.be/). 
+- To get TST (the ERC20 token used for testing), go to [this contract](https://ropsten.etherscan.io/address/0x722dd3f80bac40c951b51bdd28dd19d435762180#writeContract) and call the `showMeTheMoney` function, which can be done through etherscan with MetaMask. 
 
-
+The Ropsten testnet version of the Sablier contract is [here](https://ropsten.etherscan.io/address/0xc04Ad234E01327b24a831e3718DBFcbE245904CC).
