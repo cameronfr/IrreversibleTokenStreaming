@@ -26,7 +26,7 @@ The Ropsten testnet version of the Sablier contract is [here](https://ropsten.et
 
 ## Danger
 - if the recipient calls the `cancelStream(...)` of the Sablier contract
-- if the creator leaves the page after transferring the tokens but before `createStream(...)` is called **AND** manages to delete the temporarily saved key in `localStorage`
+- if the creator leaves the page after transferring the tokens but before `createStream(...)` is called **AND** manages to delete the temporarily saved (and obsufcated) key in `localStorage`
 
 ## Building
 
