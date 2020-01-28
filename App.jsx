@@ -272,7 +272,7 @@ class App extends React.Component {
     // On delete private key, check to see that it has no ERC20 tokens.
 		return (
       <this.Centered>
-        <div style={{display: "flex", flexDirection: "column", maxWidth:"850px", margin: "30px", marginTop: "0px"}}>
+        <div style={{display: "flex", flexDirection: "column", maxWidth:"900px", margin: "30px", marginTop: "0px"}}>
           <H1 style={{marginTop: "20px", marginBottom: "0px"}}>Irreversible Token Streaming</H1>
           <Paragraph1 >{"Create a stream, fund it, and throw away the key."}</Paragraph1>
 
@@ -472,12 +472,12 @@ class App extends React.Component {
 	  var sablierContract = new web3.eth.Contract(this.sablierABI, SABLIER_CONTRACT_ADDRESS);
 
 		var gasPrice = toBN(await web3.eth.getGasPrice()).mul(toBN(10)) // Speed up transactions
-	  var gasForSending = toBN(await web3.eth.estimateGas({from: sendingAddress, to:controllerAccount.address}))
-	  var gasForApproval = toBN(await ERC20Contract.methods.approve(SABLIER_CONTRACT_ADDRESS, amount.toString()).estimateGas())
-	  var gasForERC20Transfer = toBN(await ERC20Contract.methods.transfer(controllerAccount.address, amount.toString()).estimateGas())
+	  var gasForSending = toBN(await web3.eth.estimateGas({from: sendingAddress, to:controllerAccount.address})).mul(toBN(2))
+	  var gasForApproval = toBN(await ERC20Contract.methods.approve(SABLIER_CONTRACT_ADDRESS, amount.toString()).estimateGas()).mul(toBN(2))
+	  var gasForERC20Transfer = toBN(await ERC20Contract.methods.transfer(controllerAccount.address, amount.toString()).estimateGas()).mul(toBN(2))
 	  var gasForStreamCreation = toBN(500000)
 	  // estimateGas doesn't work with web3 for createStream currently; seems to use about 250,000 gas
-	  //var gasForStreamCreation = await sablierContract.methods.createStream(payeeAddress, amount.toString(), ERC20_CONTRACT_ADDRESS, startTime.toString(), endTime.toString()).estimateGas()
+    // estimateGas needs a bit of margin (* 2) to prevent failures from small misestimations.
 
 	  var sendingTxFee = gasForSending.mul(gasPrice)
 	  var approvalTxFee = gasForApproval.mul(gasPrice)
