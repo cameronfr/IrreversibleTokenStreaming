@@ -127,7 +127,7 @@ class App extends React.Component {
     })
 
     window.ethereum.setMaxListeners(1000) // so can make many balance calls at once
-    window.ethereum.on('accountsChanged', accounts => window.location.reload())
+    // window.ethereum.on('accountsChanged', accounts => window.location.reload()) // this event is buggy and sometimes fires on page load
     window.ethereum.on('chainChanged', newChain => window.location.reload())
     web3 = new Web3(window.ethereum)
     toBN = web3.utils.toBN
