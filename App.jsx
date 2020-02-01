@@ -467,17 +467,17 @@ class App extends React.Component {
   }
 
 	async createPayroll (sendingAddress, controllerAccount, payeeAddress, amount, startTime, endTime) {
-
 	  var ERC20Contract = new web3.eth.Contract(this.erc20ABI, ERC20_CONTRACT_ADDRESS);
 	  var sablierContract = new web3.eth.Contract(this.sablierABI, SABLIER_CONTRACT_ADDRESS);
 
 		var gasPrice = toBN(await web3.eth.getGasPrice()).mul(toBN(10)) // Speed up transactions
 	  var gasForSending = toBN(await web3.eth.estimateGas({from: sendingAddress, to:controllerAccount.address})).mul(toBN(2))
-	  var gasForApproval = toBN(await ERC20Contract.methods.approve(SABLIER_CONTRACT_ADDRESS, amount.toString()).estimateGas()).mul(toBN(2))
-	  var gasForERC20Transfer = toBN(await ERC20Contract.methods.transfer(controllerAccount.address, amount.toString()).estimateGas()).mul(toBN(2))
+	  var gasForApproval = toBN(await ERC20Contract.methods.approve(SABLIER_CONTRACT_ADDRESS, amount.toString()).estimateGas({from: sendingAddress})).mul(toBN(2))
+	  var gasForERC20Transfer = toBN(await ERC20Contract.methods.transfer(controllerAccount.address, amount.toString()).estimateGas({from: sendingAddress})).mul(toBN(2))
 	  var gasForStreamCreation = toBN(500000)
-	  // estimateGas doesn't work with web3 for createStream currently; seems to use about 250,000 gas
-    // estimateGas needs a bit of margin (* 2) to prevent failures from small misestimations.
+	  // estimateGas doesn't work with web3 for sablier createStream currently; seems to use about 250,000 gas
+    // estimateGas needs a bit of margin (* 2) to prevent failures from small misestimations if state of contract changes.
+    // be sure to add {from: ...} to estimateGas to prevent misestimation that depends on amounts.
 
 	  var sendingTxFee = gasForSending.mul(gasPrice)
 	  var approvalTxFee = gasForApproval.mul(gasPrice)
