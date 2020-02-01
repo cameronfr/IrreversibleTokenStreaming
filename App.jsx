@@ -10,6 +10,7 @@ import {LightTheme, BaseProvider, styled} from 'baseui';
 import {Input} from 'baseui/input';
 import { FormControl } from "baseui/form-control";
 import { Select, TYPE as SelectTypes } from "baseui/select";
+import { toaster, ToasterContainer } from "baseui/toast";
 import { Notification, KIND as NotifcationKind } from "baseui/notification";
 import {
   Label1,
@@ -49,32 +50,31 @@ const BN = require('bn.js');
 const BigNumber = require('bignumber.js'); //supports decimals; use for input.
 const tokenMap = require('eth-contract-metadata')
 
-// Ropsten test network. TST test tokens.
-const USE_TESTNET = (new  URLSearchParams(window.location.search)).get("test") == "true"
 const OBSFUCATION_KEY = "obsfucation"
 
-//wait for page load before instantiationg
+// Wait for page load before instantiationg
 var web3
 var toBN
 
+// All testnet addresses are on Kovan
 const tokenListMainnet = Object.keys(tokenMap).map(k =>
   ({address: k, ...tokenMap[k], tags: (tokenMap[k].name + tokenMap[k].symbol)}))
-const tokenListTestnet = [{address: "0x722dd3F80BAC40c951b51BdD28Dd19d435762180", name: "Test Token", symbol: "TST", decimals: 18}]
-const tokenList = USE_TESTNET ? tokenListTestnet : tokenListMainnet
+const tokenListTestnet = [
+  {address: "0x0fff93a556a91a907165BfB6a6C6cAC695FC33F5", name: "Test Token", symbol: "TST", decimals: 18},
+  {address: "0xc4375b7de8af5a38a93548eb8453a498222c4ff2", name: "Testnet DAI", symbol: "DAI", decimals: 18}
+]
 
 const SABLIER_MAINNET_ADDRESS = "0xA4fc358455Febe425536fd1878bE67FfDBDEC59a"
 const SABLIER_TESTNET_ADDRESS = "0xc04Ad234E01327b24a831e3718DBFcbE245904CC"
-const SABLIER_CONTRACT_ADDRESS = USE_TESTNET ? SABLIER_TESTNET_ADDRESS : SABLIER_MAINNET_ADDRESS
 
+// Only used for getting ABI of a generic ERC20 contract.
 const ERC20_MAINNET_ADDRESS = "0x6b175474e89094c44da98b954eedeac495271d0f"
-const ERC20_TESTNET_ADDRESS = "0x722dd3F80BAC40c951b51BdD28Dd19d435762180"
-const ERC20_CONTRACT_ADDRESS = USE_TESTNET ? ERC20_TESTNET_ADDRESS : ERC20_MAINNET_ADDRESS
 
-// hashes for mainnet contract ABIs
+// Hashes for mainnet contract ABIs
 const SABLIER_ABI_SHA3 = "0xcbfc9f3ace1802ac45478ea2849968b5f2a6895f1c4beea8e29085ec84a2fe43"
 const ERC20_ABI_SHA3 = "0xa533db48442c1c18882149f8a3b768b48288edf57aecf5122aa8b9170d52dcb2"
 
-
+// Gets an ABI for a mainnet contract.
 var getABI = async (CONTRACT_ADDRESS, HASH) => {
 	const API_URL = "https://api.etherscan.io/api?module=contract&action=getabi&address="
   var json = await fetch(API_URL+CONTRACT_ADDRESS).then(r => r.json()).then(r => JSON.parse(r.result))
@@ -100,8 +100,11 @@ class App extends React.Component {
 		super(props)
 
 		this.state = {
-      tokenList: [...tokenList],
+      tokenList: [],
+      sablierAddress: "",
+      networkType: "",
 			finishedInitialLoad: false,
+      disableAllFields: false,
 			isLoading: false,
 			processStatusState: 0, //See ProgressSteps in render function
 			controllerAccount: null,
@@ -124,9 +127,37 @@ class App extends React.Component {
     })
 
     window.ethereum.setMaxListeners(1000) // so can make many balance calls at once
+    window.ethereum.on('accountsChanged', accounts => window.location.reload())
+    window.ethereum.on('chainChanged', newChain => window.location.reload())
     web3 = new Web3(window.ethereum)
     toBN = web3.utils.toBN
 		this.metamaskAddress = (await window.ethereum.enable())[0];
+
+    var networkType = await web3.eth.net.getNetworkType()
+    this.setState({networkType})
+    var tokenList = []
+    if (networkType == "main") {
+      tokenList = tokenListMainnet
+      this.setState({sablierAddress: SABLIER_MAINNET_ADDRESS})
+    }
+    else if (networkType == "kovan") {
+      tokenList = tokenListTestnet
+      this.setState({sablierAddress: SABLIER_TESTNET_ADDRESS})
+    } else {
+      this.setState({disableAllFields: true})
+      var toastKey = toaster.negative(
+        <React.Fragment>
+          {"Please use Mainnet or, for testing, Kovan"}
+        </React.Fragment>,
+        {
+          overrides: {
+            InnerContainer: {
+              style: { width: "100%" }
+            }
+          }
+        }
+      );
+    }
 
     [this.sablierABI, this.erc20ABI] = await Promise.all([
 			getABI(SABLIER_MAINNET_ADDRESS, SABLIER_ABI_SHA3),
@@ -163,7 +194,7 @@ class App extends React.Component {
 	}
 
   async loadSavedState() {
-    var savedPrivateKey = JSON.parse(window.localStorage.getItem("savedKey", null))
+    var savedPrivateKey = this.loadData("savedKey")
 
     if (savedPrivateKey != null) {
       var account = web3.eth.accounts.decrypt(savedPrivateKey, OBSFUCATION_KEY)
@@ -267,12 +298,13 @@ class App extends React.Component {
     };
 
     var readyToContinue = payeeAddressValid && dateRangeValid && depositAmountValid && this.state.finishedInitialLoad && this.metamaskAddress && this.state.controllerAccount
-    var allFieldsDisabled = this.state.processStatusState != 0
+    var allFieldsDisabled = this.state.disableAllFields || (this.state.processStatusState != 0)
 
     // On delete private key, check to see that it has no ERC20 tokens.
 		return (
       <this.Centered>
         <div style={{display: "flex", flexDirection: "column", maxWidth:"900px", margin: "30px", marginTop: "0px"}}>
+          <ToasterContainer/>
           <H1 style={{marginTop: "20px", marginBottom: "0px"}}>Irreversible Token Streaming</H1>
           <Paragraph1 >{"Create a stream, fund it, and throw away the key."}</Paragraph1>
 
@@ -440,10 +472,10 @@ class App extends React.Component {
   async beginProcess() {
     // Save the private key to localStorage temporarily, in case anything happens
     // Only save if it's not already in the localStorage.
-    var savedPrivateKey = JSON.parse(window.localStorage.getItem("savedKey", null))
+    var savedPrivateKey = this.loadData("savedKey")
     if (!savedPrivateKey) {
       var obsfucatedAccount = web3.eth.accounts.encrypt(this.state.controllerAccount.privateKey, OBSFUCATION_KEY)
-      window.localStorage.setItem("savedKey", JSON.stringify(obsfucatedAccount))
+      this.saveData("savedKey", obsfucatedAccount)
     }
 
     this.setState({processStatusState:1})
@@ -457,22 +489,22 @@ class App extends React.Component {
       this.setState({processStatusState:0}) // might be better to have user click before returning to start state
     }
     var actualAmount = desiredAmount.sub(desiredAmount.mod(timeDelta))
-    var {streamID, transactionHash} = await this.createPayroll(this.metamaskAddress, this.state.controllerAccount, this.state.payeeAddress, actualAmount, startTimeSec, endTimeSec)
+    var {streamID, transactionHash} = await this.createPayroll(this.metamaskAddress, this.state.controllerAccount, this.state.payeeAddress, this.state.selectedToken.address, this.state.sablierAddress, actualAmount, startTimeSec, endTimeSec)
 
     this.setState({streamID, transactionHash})
-    var savedPreviousTransactions = JSON.parse(window.localStorage.getItem("savedTXs")) || []
+    var savedPreviousTransactions = this.loadData("savedTXs") || []
     savedPreviousTransactions.push({streamID, transactionHash})
-    console.log(savedPreviousTransactions)
-    window.localStorage.setItem("savedTXs", JSON.stringify(savedPreviousTransactions))
+    console.log("Previous transactions", savedPreviousTransactions)
+    this.saveData("savedTXs", savedPreviousTransactions)
   }
 
-	async createPayroll (sendingAddress, controllerAccount, payeeAddress, amount, startTime, endTime) {
-	  var ERC20Contract = new web3.eth.Contract(this.erc20ABI, ERC20_CONTRACT_ADDRESS);
-	  var sablierContract = new web3.eth.Contract(this.sablierABI, SABLIER_CONTRACT_ADDRESS);
+	async createPayroll (sendingAddress, controllerAccount, payeeAddress, tokenAddress, sablierAddress, amount, startTime, endTime) {
+	  var ERC20Contract = new web3.eth.Contract(this.erc20ABI, tokenAddress);
+	  var sablierContract = new web3.eth.Contract(this.sablierABI, sablierAddress);
 
 		var gasPrice = toBN(await web3.eth.getGasPrice()).mul(toBN(10)) // Speed up transactions
 	  var gasForSending = toBN(await web3.eth.estimateGas({from: sendingAddress, to:controllerAccount.address})).mul(toBN(2))
-	  var gasForApproval = toBN(await ERC20Contract.methods.approve(SABLIER_CONTRACT_ADDRESS, amount.toString()).estimateGas({from: sendingAddress})).mul(toBN(2))
+	  var gasForApproval = toBN(await ERC20Contract.methods.approve(sablierAddress, amount.toString()).estimateGas({from: sendingAddress})).mul(toBN(2))
 	  var gasForERC20Transfer = toBN(await ERC20Contract.methods.transfer(controllerAccount.address, amount.toString()).estimateGas({from: sendingAddress})).mul(toBN(2))
 	  var gasForStreamCreation = toBN(500000)
 	  // estimateGas doesn't work with web3 for sablier createStream currently; seems to use about 250,000 gas
@@ -484,7 +516,7 @@ class App extends React.Component {
 	  var ERC20TransferTxFee = gasForERC20Transfer.mul(gasPrice)
 	  var streamCreationTxFee = gasForStreamCreation.mul(gasPrice)
 
-		var isApprovalNeeded = toBN(await ERC20Contract.methods.allowance(controllerAccount.address, SABLIER_CONTRACT_ADDRESS).call()).lt(amount)
+		var isApprovalNeeded = toBN(await ERC20Contract.methods.allowance(controllerAccount.address, sablierAddress).call()).lt(amount)
 		var numTokensRequired = amount.sub(toBN(await ERC20Contract.methods.balanceOf(controllerAccount.address).call()))
 		var areTokensRequired = numTokensRequired.gt(toBN(0))
 
@@ -514,7 +546,7 @@ class App extends React.Component {
 
     this.setState({processStatusState:2})
 		if (isApprovalNeeded) { // Approve the Sablier contract to spend the controller's tokens
-	    var approveTx = await ERC20Contract.methods.approve(SABLIER_CONTRACT_ADDRESS, amount.toString()).send({
+	    var approveTx = await ERC20Contract.methods.approve(sablierAddress, amount.toString()).send({
 	      from: controllerAccount.address,
 	      gas: gasForApproval,
 	      gasPrice: gasPrice,
@@ -533,7 +565,7 @@ class App extends React.Component {
 	  // Create the Sablier stream.
 	  // Unfortunately, we can't pre-create this because the contract transfers all tokens immediately.
     this.setState({processStatusState:4})
-	  var streamCreateTx = await sablierContract.methods.createStream(payeeAddress, amount.toString(), ERC20_CONTRACT_ADDRESS, startTime.toString(), endTime.toString()).send({
+	  var streamCreateTx = await sablierContract.methods.createStream(payeeAddress, amount.toString(), tokenAddress, startTime.toString(), endTime.toString()).send({
 	    from: controllerAccount.address,
 	    gas: gasForStreamCreation,
 	    gasPrice: gasPrice,
@@ -547,7 +579,7 @@ class App extends React.Component {
 	}
 
   async canDeletePrivateKey(account) {
-    var getTokenBalances = tokenList.map(async (item) => {
+    var getTokenBalances = this.state.tokenList.map(async (item) => {
       var ERC20Contract = new web3.eth.Contract(this.erc20ABI, item.address);
       try {
         var balance = toBN(await ERC20Contract.methods.balanceOf(account.address).call())
@@ -587,11 +619,22 @@ class App extends React.Component {
 
   deletePrivateKey() {
       web3.eth.accounts.wallet.clear()
-      window.localStorage.setItem("savedKey", null)
+      this.saveData("savedKey", null)
       if (this.state.controllerAccount) this.state.controllerAccount.privateKey = null
       this.loadSavedState()
       this.setState({successNotification: "Successfully overwrote private key with new temporary account"})
       this.setState({processStatusState: 0})
+  }
+
+  saveData(key, data) {
+    if (this.state.networkType == "") {
+      throw "Saving data before network type has been initialized"
+    }
+    window.localStorage.setItem(key + this.state.networkType, JSON.stringify(data))
+  }
+
+  loadData(key) {
+    return JSON.parse(window.localStorage.getItem(key + this.state.networkType, null))
   }
 }
 
