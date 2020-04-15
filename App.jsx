@@ -76,8 +76,9 @@ const ERC20_ABI_SHA3 = "0xa533db48442c1c18882149f8a3b768b48288edf57aecf5122aa8b9
 
 // Gets an ABI for a mainnet contract.
 var getABI = async (CONTRACT_ADDRESS, HASH) => {
-	const API_URL = "https://api.etherscan.io/api?module=contract&action=getabi&address="
-  var json = await fetch(API_URL+CONTRACT_ADDRESS).then(r => r.json()).then(r => JSON.parse(r.result))
+  const API_KEY = "9J7GTDTE77H82N9MQTT7KFGESH2JNJVDFC" 
+	var apiURL = `https://api.etherscan.io/api?module=contract&apiKey=${API_KEY}&action=getabi&address=${CONTRACT_ADDRESS}`
+  var json = await fetch(apiURL).then(r => r.json()).then(r => JSON.parse(r.result))
   if (web3.utils.sha3(json) != HASH) {
     throw "ABI hash does not match!"
   }
